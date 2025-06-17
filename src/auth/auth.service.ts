@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Body, Injectable } from '@nestjs/common';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
-  testLogin(): string {
-    return 'Auth Service OK';
+  login(loginDto: LoginDto) {
+    return loginDto;
   }
 }
