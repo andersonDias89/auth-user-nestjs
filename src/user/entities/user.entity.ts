@@ -1,3 +1,1 @@
-export class userEntity {
-  name: string;
-}
+export class User {}
