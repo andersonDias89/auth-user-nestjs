@@ -1,17 +1,19 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
+@Entity()
 export class User {
-  @IsString({})
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @Column()
   name: string;
 
-  @IsEmail()
+  @Column({ unique: true })
   email: string;
 
-  @IsString()
-  @IsNotEmpty()
+  @Column()
   password: string;
+
+  @Column({ default: false })
+  forceLogout: string;
 }
