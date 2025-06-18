@@ -20,11 +20,9 @@ export class UserService {
     });
 
     if (exist) {
-      // Aqui você pode lançar um erro, retornar uma mensagem ou tratar como necessário
       throw new Error('Usuário já existe com esse e-mail');
     }
 
-    // Se não existir, cria o usuário
     const newUser = this.userRepository.create(createUserDto);
     return this.userRepository.save(newUser);
   }
