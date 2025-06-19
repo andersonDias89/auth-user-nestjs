@@ -4,31 +4,41 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { HashingService } from 'src/common/hashing/hashing.service';
+import { DuplicateUserException } from 'src/common/pipes/duplicate-user.exception';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly hashingService: HashingService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
-    const exist = await this.userRepository.exists({
-      where: {
-        email: createUserDto.email,
-      },
+    const existing = await this.userRepository.findOne({
+      where: { email: createUserDto.email },
     });
 
-    if (exist) {
-      throw new Error('Usuário já existe com esse e-mail');
+    if (existing) {
+      throw new DuplicateUserException(createUserDto.email);
     }
 
-    const newUser = this.userRepository.create(createUserDto);
-    return this.userRepository.save(newUser);
+    const hashedPassword = await this.hashingService.hash(
+      createUserDto.password,
+    );
+
+    const userData = this.userRepository.create({
+      name: createUserDto.name,
+      email: createUserDto.email,
+      password: hashedPassword,
+    });
+
+    return await this.userRepository.save(userData);
   }
 
   findAll() {
-    return `This action returns all user`;
+    return `This action returns all users`;
   }
 
   findOne(id: number) {
