@@ -34,7 +34,15 @@ export class UserService {
       password: hashedPassword,
     });
 
-    return await this.userRepository.save(userData);
+    return await this.userRepository.save(userData); // ✅ corrigido
+  }
+
+  async findByEmail(email: string) {
+    return this.userRepository.findOneBy({ email });
+  }
+
+  async save(user: User) {
+    return this.userRepository.save(user); // ✅ agora acessível no AuthService
   }
 
   findAll() {
