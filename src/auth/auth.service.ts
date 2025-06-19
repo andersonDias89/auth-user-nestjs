@@ -40,8 +40,6 @@ export class AuthService {
     user.forceLogout = false;
     await this.userService.save(user);
 
-    console.log('Token gerado:', accessToken);
-
     return { accessToken };
   }
 }
