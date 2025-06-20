@@ -30,12 +30,11 @@ export class AuthService {
       throw error;
     }
 
-    const jwtPayload: JwtPayload = {
+    const JwtPayload: JwtPayload = {
       sub: user.id,
       email: user.email,
     };
-
-    const accessToken = await this.jwtService.signAsync(jwtPayload);
+    const accessToken = await this.jwtService.signAsync(JwtPayload);
 
     user.forceLogout = false;
     await this.userService.save(user);

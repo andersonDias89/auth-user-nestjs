@@ -1,11 +1,17 @@
-import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { CreateUserDto } from './dto/create-user.dto';
 import { HashingService } from 'src/common/hashing/hashing.service';
-import { DuplicateUserException } from 'src/common/pipes/duplicate-user.exception';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 @Injectable()
 export class UserService {
@@ -15,49 +21,91 @@ export class UserService {
     private readonly hashingService: HashingService,
   ) {}
 
-  async create(createUserDto: CreateUserDto) {
-    const existing = await this.userRepository.findOne({
-      where: { email: createUserDto.email },
+  async failIfEmailExists(email: string) {
+    const exists = await this.userRepository.existsBy({
+      email,
     });
 
-    if (existing) {
-      throw new DuplicateUserException(createUserDto.email);
+    if (exists) {
+      throw new ConflictException('E-mail já existe');
     }
-
-    const hashedPassword = await this.hashingService.hash(
-      createUserDto.password,
-    );
-
-    const userData = this.userRepository.create({
-      name: createUserDto.name,
-      email: createUserDto.email,
-      password: hashedPassword,
-    });
-
-    return await this.userRepository.save(userData); // ✅ corrigido
   }
 
-  async findByEmail(email: string) {
+  async findOneByOrFail(userData: Partial<User>) {
+    const user = await this.userRepository.findOneBy(userData);
+
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado');
+    }
+
+    return user;
+  }
+
+  async create(dto: CreateUserDto) {
+    await this.failIfEmailExists(dto.email);
+
+    const hashedPassword = await this.hashingService.hash(dto.password);
+    const newUser: CreateUserDto = {
+      name: dto.name,
+      email: dto.email,
+      password: hashedPassword,
+    };
+
+    const created = await this.userRepository.save(newUser);
+    return created;
+  }
+
+  findByEmail(email: string) {
     return this.userRepository.findOneBy({ email });
   }
 
-  async save(user: User) {
-    return this.userRepository.save(user); // ✅ agora acessível no AuthService
+  findById(id: string) {
+    return this.userRepository.findOneBy({ id });
   }
 
-  findAll() {
-    return `This action returns all users`;
+  async update(id: string, dto: UpdateUserDto) {
+    if (!dto.name && !dto.email) {
+      throw new BadRequestException('Dados não enviados');
+    }
+
+    const user = await this.findOneByOrFail({ id });
+
+    user.name = dto.name ?? user.name;
+
+    if (dto.email && dto.email !== user.email) {
+      await this.failIfEmailExists(dto.email);
+      user.email = dto.email;
+      user.forceLogout = true;
+    }
+
+    return this.save(user);
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} user`;
+  async updatePassword(id: string, dto: UpdatePasswordDto) {
+    const user = await this.findOneByOrFail({ id });
+
+    const isCurrentPasswordValid = await this.hashingService.compare(
+      dto.currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new UnauthorizedException('Senha atual inválida');
+    }
+
+    user.password = await this.hashingService.hash(dto.newPassword);
+    user.forceLogout = true;
+
+    return this.save(user);
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async remove(id: string) {
+    const user = await this.findOneByOrFail({ id });
+    await this.userRepository.delete({ id });
+    return user;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  save(user: User) {
+    return this.userRepository.save(user);
   }
 }

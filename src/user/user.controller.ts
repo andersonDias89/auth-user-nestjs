@@ -1,59 +1,63 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
-  Param,
+  Controller,
   Delete,
+  Get,
+  Patch,
+  Post,
+  Req,
   UseGuards,
-  Request,
 } from '@nestjs/common';
-import { UserService } from './user.service';
+import { ConfigService } from '@nestjs/config';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { AuthenticatedRequest } from 'src/auth/types/authenticated-request';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { UserResponseDto } from './dto/user-response.dto';
+import { UpdatePasswordDto } from './dto/update-password.dto';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly userService: UserService,
+  ) {}
+
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async findOne(@Req() req: AuthenticatedRequest) {
+    const user = await this.userService.findOneByOrFail({ id: req.user.id });
+    return new UserResponseDto(user);
+  }
 
   @Post()
-  async create(@Body() createUserDto: CreateUserDto) {
-    return this.userService.create(createUserDto);
-  }
-
-  // 🔐 Rota protegida por JWT
-  @UseGuards(JwtAuthGuard)
-  @Get('profile')
-  getProfile(@Request() req) {
-    return {
-      message: 'Usuário autenticado',
-      user: req.user,
-    };
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get()
-  findAll() {
-    return this.userService.findAll();
-  }
-
-  @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.userService.findOne(+id);
+  async create(@Body() dto: CreateUserDto) {
+    const user = await this.userService.create(dto);
+    return new UserResponseDto(user);
   }
 
   @UseGuards(JwtAuthGuard)
   @Patch('me')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.userService.update(+id, updateUserDto);
+  async update(@Req() req: AuthenticatedRequest, @Body() dto: UpdateUserDto) {
+    const user = await this.userService.update(req.user.id, dto);
+    return new UserResponseDto(user);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.userService.remove(+id);
+  @Patch('me/password')
+  async updatePassword(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: UpdatePasswordDto,
+  ) {
+    const user = await this.userService.updatePassword(req.user.id, dto);
+    return new UserResponseDto(user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me')
+  async remove(@Req() req: AuthenticatedRequest) {
+    const user = await this.userService.remove(req.user.id);
+    return new UserResponseDto(user);
   }
 }

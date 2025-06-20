@@ -1,31 +1,19 @@
-import {
-  ExecutionContext,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import { JsonWebTokenError } from '@nestjs/jwt';
 import { AuthGuard } from '@nestjs/passport';
-import { Reflector } from '@nestjs/core';
-import { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken';
 
-@Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private reflector: Reflector) {
-    super();
-  }
-
-  handleRequest(err: any, user: any, info: any, context: ExecutionContext) {
-    if (err || !user) {
-      if (info instanceof TokenExpiredError) {
-        throw new UnauthorizedException('Token expirado.');
-      }
-
-      if (info instanceof JsonWebTokenError) {
-        throw new UnauthorizedException('Token inválido.');
-      }
-
-      throw new UnauthorizedException('Autenticação necessária.');
+  handleRequest<TUser = any>(
+    err: any,
+    user: any,
+    info: any,
+    context: ExecutionContext,
+    status?: any,
+  ): TUser {
+    if (!user || info instanceof JsonWebTokenError) {
+      throw new UnauthorizedException('Você precisa fazer login');
     }
 
-    return user;
+    return super.handleRequest(err, user, info, context, status);
   }
 }
