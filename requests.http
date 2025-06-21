@@ -3,8 +3,8 @@
 
 @userNameForTesting = Anderson
 @userEmailForTesting = anderson@email.com
-@userPasswordForTesting = 123456
-@userNewPasswordForTesting = 123456
+@userPasswordForTesting = 654321
+@userNewPasswordForTesting = 654321
 
 # AUTH ########################################################################
 
