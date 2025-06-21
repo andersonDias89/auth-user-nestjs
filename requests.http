@@ -1,8 +1,8 @@
 @baseUrl = http://localhost:3002
 @jwtToken = {{authLogin.response.body.accessToken}}
 
-@userNameForTesting = Anderson
-@userEmailForTesting = anderson@email.com
+@userNameForTesting = outro
+@userEmailForTesting = outro@email.com
 @userPasswordForTesting = 654321
 @userNewPasswordForTesting = 654321
 
@@ -24,6 +24,7 @@ Content-Type: application/json
 # @name createUser
 POST {{baseUrl}}/user
 Content-Type: application/json
+Origin: http://localhost:3000
 
 {
   "name": "{{userNameForTesting}}",
